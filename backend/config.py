@@ -42,6 +42,14 @@ class Config:
     TOKEN_EXPIRE_HOURS = int(os.environ.get('TOKEN_EXPIRE_HOURS', 72))
     RESET_CODE_EXPIRE_MINUTES = int(os.environ.get('RESET_CODE_EXPIRE_MINUTES', 15))
     
+    # SMTP Email settings
+    SMTP_HOST = os.environ.get('SMTP_HOST', '').strip()
+    SMTP_PORT = int(os.environ.get('SMTP_PORT', 587))
+    SMTP_USER = os.environ.get('SMTP_USER', '').strip()
+    SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', '').strip()
+    SMTP_FROM = os.environ.get('SMTP_FROM', '').strip()
+    SMTP_TLS = os.environ.get('SMTP_TLS', 'True').lower() in ('true', '1', 't')
+    
     # Allowed formats
     ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
     ALLOWED_VIDEO_EXTENSIONS = {'.mp4', '.webm', '.mov'}

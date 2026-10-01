@@ -1472,11 +1472,12 @@ const Views = (() => {
               </button>
             </form>
 
-            <!-- Forgot Password Flow (OTP + Reset) -->
+            <!-- Forgot Password Flow (3-Step: Email -> OTP Code -> New Password) -->
             <div id="form-forgot" style="display: ${defaultTab==='forgot'?'block':'none'};">
+              <!-- Step 1: Enter Registered Email -->
               <div id="forgot-step-1">
                 <p class="text-sm text-muted" style="margin-bottom: 1.25rem;">
-                  Enter your registered email address. We will generate a secure 6-digit verification code to reset your password safely.
+                  Enter your registered email address. We will send a secure 6-digit one-time code to that email to verify your identity.
                 </p>
                 <form onsubmit="Views.handleForgotRequest(event)">
                   <div class="form-group">
@@ -1484,33 +1485,61 @@ const Views = (() => {
                     <input type="email" id="forgot-email" class="form-input" placeholder="e.g. narayanan@example.com" required>
                   </div>
                   <button type="submit" id="btn-request-code" class="btn btn-primary w-full">
-                    <span>Send Verification Code ✉️</span>
+                    <span>Send One-Time Code ✉️</span>
                   </button>
+                  <div style="text-align: center; margin-top: 1rem;">
+                    <a href="javascript:void(0)" onclick="Views.switchAuthTab('login')" class="text-xs text-muted">← Back to Sign In</a>
+                  </div>
                 </form>
               </div>
 
+              <!-- Step 2: Enter One-Time Code -->
               <div id="forgot-step-2" style="display: none;">
-                <p class="text-sm text-muted" style="margin-bottom: 1rem;">
-                  A 6-digit verification code was generated for your email. Enter it below along with your new password.
-                </p>
-                <div id="dev-code-banner" style="display: none; background: var(--accent-gold-soft); border: 1px dashed var(--accent-gold); padding: 0.6rem 0.85rem; border-radius: var(--radius-md); font-size: 0.85rem; margin-bottom: 1rem;">
-                  <span>Demo Verification Code: <strong id="dev-code-text" style="letter-spacing: 2px;"></strong></span>
+                <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0.85rem 1rem; margin-bottom: 1.25rem;">
+                  <p class="text-sm" style="margin: 0; color: var(--text-main);">
+                    ✉️ We sent a 6-digit one-time code to: <br><strong id="forgot-sent-email" style="color: var(--primary);"></strong>
+                  </p>
+                  <p class="text-xs text-muted" style="margin: 0.35rem 0 0;">Check your inbox & spam folder. Code expires in 15 minutes.</p>
                 </div>
+
+                <div id="dev-code-banner" style="display: none; background: var(--accent-gold-soft); border: 1px dashed var(--accent-gold); padding: 0.6rem 0.85rem; border-radius: var(--radius-md); font-size: 0.85rem; margin-bottom: 1rem;">
+                  <span>⚡ Dev Test Code: <strong id="dev-code-text" style="letter-spacing: 2px;"></strong></span>
+                </div>
+
+                <form onsubmit="Views.handleVerifyCodeSubmit(event)">
+                  <div class="form-group">
+                    <label class="form-label">6-Digit One-Time Code</label>
+                    <input type="text" id="reset-code" class="form-input" placeholder="• • • • • •" maxlength="6" inputmode="numeric" required style="letter-spacing: 6px; font-size: 1.25rem; font-weight: bold; text-align: center;">
+                  </div>
+                  <button type="submit" id="btn-verify-code" class="btn btn-primary w-full">
+                    <span>Verify Code 🔒</span>
+                  </button>
+                  <div class="flex items-center justify-between" style="margin-top: 1rem;">
+                    <a href="javascript:void(0)" onclick="Views.goToForgotStep(1)" class="text-xs text-muted">← Change Email</a>
+                    <a href="javascript:void(0)" onclick="Views.handleResendCode()" class="text-xs" style="color: var(--primary); font-weight: 600;">Resend Code</a>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Step 3: Create New Password -->
+              <div id="forgot-step-3" style="display: none;">
+                <div style="background: rgba(46, 125, 50, 0.1); border: 1px solid rgba(46, 125, 50, 0.3); border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-bottom: 1.25rem;">
+                  <p class="text-sm" style="margin: 0; color: #2e7d32; font-weight: 600;">
+                    ✅ Code verified! Create your new password below.
+                  </p>
+                </div>
+
                 <form onsubmit="Views.handleResetSubmit(event)">
                   <div class="form-group">
-                    <label class="form-label">6-Digit Verification Code</label>
-                    <input type="text" id="reset-code" class="form-input" placeholder="e.g. 123456" maxlength="6" required style="letter-spacing: 3px; font-weight: bold; text-align: center;">
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">New Strong Password</label>
-                    <input type="password" id="reset-new-password" class="form-input" placeholder="Min 8 chars, uppercase, lowercase, number/symbol" required>
+                    <label class="form-label">New Password</label>
+                    <input type="password" id="reset-new-password" class="form-input" placeholder="Min 8 chars, 1 uppercase, 1 lowercase, 1 number" required>
                   </div>
                   <div class="form-group">
                     <label class="form-label">Confirm New Password</label>
                     <input type="password" id="reset-confirm-password" class="form-input" placeholder="Repeat new password" required>
                   </div>
-                  <button type="submit" class="btn btn-primary w-full" style="margin-top: 0.5rem;">
-                    <span>Reset Password & Log In ❤️</span>
+                  <button type="submit" id="btn-save-new-password" class="btn btn-primary w-full" style="margin-top: 0.5rem;">
+                    <span>Set New Password & Sign In ❤️</span>
                   </button>
                 </form>
               </div>
@@ -1543,6 +1572,10 @@ const Views = (() => {
     document.getElementById('form-login').style.display = tab === 'login' ? 'block' : 'none';
     document.getElementById('form-register').style.display = tab === 'register' ? 'block' : 'none';
     document.getElementById('form-forgot').style.display = tab === 'forgot' ? 'block' : 'none';
+
+    if (tab === 'forgot') {
+      goToForgotStep(1);
+    }
   };
 
   const handleLoginSubmit = async (e) => {
@@ -1581,6 +1614,17 @@ const Views = (() => {
   };
 
   let pendingForgotEmail = '';
+  let verifiedResetCode = '';
+
+  const goToForgotStep = (step) => {
+    const s1 = document.getElementById('forgot-step-1');
+    const s2 = document.getElementById('forgot-step-2');
+    const s3 = document.getElementById('forgot-step-3');
+    if (s1) s1.style.display = step === 1 ? 'block' : 'none';
+    if (s2) s2.style.display = step === 2 ? 'block' : 'none';
+    if (s3) s3.style.display = step === 3 ? 'block' : 'none';
+  };
+
   const handleForgotRequest = async (e) => {
     e.preventDefault();
     const email = document.getElementById('forgot-email').value.trim();
@@ -1588,45 +1632,118 @@ const Views = (() => {
 
     const btn = document.getElementById('btn-request-code');
     btn.disabled = true;
-    btn.innerText = 'Generating Code...';
+    btn.innerText = 'Sending One-Time Code...';
 
     try {
       const res = await API.auth.forgotPassword(email);
       showToast(res.message);
-      document.getElementById('forgot-step-1').style.display = 'none';
-      document.getElementById('forgot-step-2').style.display = 'block';
 
-      if (res.dev_verification_code) {
-        document.getElementById('dev-code-banner').style.display = 'block';
+      const sentEmailEl = document.getElementById('forgot-sent-email');
+      if (sentEmailEl) sentEmailEl.innerText = email;
+
+      goToForgotStep(2);
+
+      const devBanner = document.getElementById('dev-code-banner');
+      if (res.dev_verification_code && devBanner) {
+        devBanner.style.display = 'block';
         document.getElementById('dev-code-text').innerText = res.dev_verification_code;
-        document.getElementById('reset-code').value = res.dev_verification_code;
+      } else if (devBanner) {
+        devBanner.style.display = 'none';
+      }
+
+      const codeInput = document.getElementById('reset-code');
+      if (codeInput) {
+        codeInput.value = '';
+        setTimeout(() => codeInput.focus(), 150);
       }
     } catch (err) {
       showToast(err.message, 'error');
+    } finally {
       btn.disabled = false;
-      btn.innerText = 'Send Verification Code ✉️';
+      btn.innerText = 'Send One-Time Code ✉️';
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (!pendingForgotEmail) return;
+    try {
+      const res = await API.auth.forgotPassword(pendingForgotEmail);
+      showToast('A new one-time code has been sent!');
+      const devBanner = document.getElementById('dev-code-banner');
+      if (res.dev_verification_code && devBanner) {
+        devBanner.style.display = 'block';
+        document.getElementById('dev-code-text').innerText = res.dev_verification_code;
+      }
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const handleVerifyCodeSubmit = async (e) => {
+    e.preventDefault();
+    const code = document.getElementById('reset-code').value.trim();
+    if (code.length !== 6) {
+      showToast('Please enter the full 6-digit code.', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('btn-verify-code');
+    btn.disabled = true;
+    btn.innerText = 'Verifying Code...';
+
+    try {
+      const res = await API.auth.verifyResetCode({
+        email: pendingForgotEmail,
+        code
+      });
+      verifiedResetCode = code;
+      showToast(res.message || 'Code verified successfully!');
+      goToForgotStep(3);
+      setTimeout(() => {
+        const pwdInput = document.getElementById('reset-new-password');
+        if (pwdInput) pwdInput.focus();
+      }, 150);
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerText = 'Verify Code 🔒';
     }
   };
 
   const handleResetSubmit = async (e) => {
     e.preventDefault();
-    const code = document.getElementById('reset-code').value.trim();
     const password = document.getElementById('reset-new-password').value;
     const confirm_password = document.getElementById('reset-confirm-password').value;
+
+    if (!verifiedResetCode) {
+      showToast('Please enter and verify your one-time code first.', 'error');
+      goToForgotStep(2);
+      return;
+    }
+
+    const btn = document.getElementById('btn-save-new-password');
+    btn.disabled = true;
+    btn.innerText = 'Saving New Password...';
 
     try {
       const res = await API.auth.resetPassword({
         email: pendingForgotEmail,
-        code,
+        code: verifiedResetCode,
         password,
         confirm_password
       });
       showToast(res.message);
+      goToForgotStep(1);
+      verifiedResetCode = '';
       switchAuthTab('login');
       document.getElementById('login-id').value = pendingForgotEmail;
       document.getElementById('login-password').focus();
     } catch (err) {
       showToast(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerText = 'Set New Password & Sign In ❤️';
     }
   };
 
@@ -1700,6 +1817,9 @@ const Views = (() => {
     handleLoginSubmit,
     handleRegisterSubmit,
     handleForgotRequest,
+    handleVerifyCodeSubmit,
+    handleResendCode,
+    goToForgotStep,
     handleResetSubmit,
     quickLogin,
     closeModal,

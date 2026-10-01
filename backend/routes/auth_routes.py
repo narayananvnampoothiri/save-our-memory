@@ -15,6 +15,7 @@ from backend.auth import (
     check_rate_limit
 )
 from backend.security import sanitize_user
+from backend.email_service import send_reset_code_email
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
@@ -137,6 +138,7 @@ def forgot_password():
     user = db.execute("SELECT id, email FROM users WHERE email = ?", (email,)).fetchone()
 
     debug_code = None
+    email_sent = False
     if user:
         # Generate 6-digit code
         raw_code = f"{secrets.randbelow(900000) + 100000:06d}"
@@ -158,15 +160,60 @@ def forgot_password():
         )
         db.commit()
 
-        # In dev mode, return the code for testing convenience and log to console
+        # Send email via SMTP service
+        email_sent, _ = send_reset_code_email(user['email'], raw_code)
         debug_code = raw_code
         print(f"[SECURITY LOG] Password reset code generated for {email}: {raw_code}")
 
-    res = {'message': generic_message}
-    if debug_code and Config.DEBUG:
+    res = {
+        'message': f"A 6-digit one-time verification code has been sent to {email}." if user else generic_message,
+        'email_sent': email_sent
+    }
+    # Provide dev_verification_code only when SMTP is unconfigured in development
+    if debug_code and Config.DEBUG and not email_sent:
         res['dev_verification_code'] = debug_code
 
     return jsonify(res), 200
+
+@auth_bp.route('/verify-reset-code', methods=['POST'])
+def verify_reset_code():
+    ip = request.remote_addr or 'unknown'
+    if not check_rate_limit(f"verify_{ip}", max_requests=10, window_seconds=60):
+        return jsonify({'error': 'Too many verification attempts. Please wait a minute and try again.'}), 429
+
+    data = request.get_json() or {}
+    email = data.get('email', '').strip().lower()
+    code = data.get('code', '').strip()
+
+    if not email or not code:
+        return jsonify({'error': 'Please enter both your email address and the 6-digit verification code.'}), 400
+
+    if len(code) != 6 or not code.isdigit():
+        return jsonify({'error': 'Verification code must be exactly 6 digits.'}), 400
+
+    db = get_db()
+    user = db.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+    if not user:
+        return jsonify({'error': 'Invalid verification code.'}), 400
+
+    # Find valid unused code
+    now_str = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+    reset_entry = db.execute(
+        """
+        SELECT id, code_hash, expires_at FROM password_reset_codes
+        WHERE user_id = ? AND used_at IS NULL AND expires_at > ?
+        ORDER BY created_at DESC LIMIT 1
+        """,
+        (user['id'], now_str)
+    ).fetchone()
+
+    if not reset_entry:
+        return jsonify({'error': 'Verification code has expired or was already used. Please request a new code.'}), 400
+
+    if not verify_reset_code_hash(code, reset_entry['code_hash']):
+        return jsonify({'error': 'Incorrect verification code. Please check your email and try again.'}), 400
+
+    return jsonify({'success': True, 'message': 'Code verified successfully! You can now create your new password.'}), 200
 
 @auth_bp.route('/reset-password', methods=['POST'])
 def reset_password():

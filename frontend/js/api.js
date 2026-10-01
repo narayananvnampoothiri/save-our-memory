@@ -51,6 +51,7 @@ const API = (() => {
       logout: () => request('/api/auth/logout', { method: 'POST' }),
       getMe: () => request('/api/auth/me'),
       forgotPassword: (email) => request('/api/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+      verifyResetCode: (data) => request('/api/auth/verify-reset-code', { method: 'POST', body: JSON.stringify(data) }),
       resetPassword: (data) => request('/api/auth/reset-password', { method: 'POST', body: JSON.stringify(data) })
     },
     memories: {

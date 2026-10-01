@@ -133,6 +133,20 @@ class TestAuth(unittest.TestCase):
         code = data.get('dev_verification_code')
         self.assertTrue(code is not None and len(code) == 6)
 
+        # Test verify with wrong code
+        bad_verify = self.client.post('/api/auth/verify-reset-code', json={
+            'email': 'reset@example.com',
+            'code': '000000'
+        })
+        self.assertEqual(bad_verify.status_code, 400)
+
+        # Test verify with correct code
+        good_verify = self.client.post('/api/auth/verify-reset-code', json={
+            'email': 'reset@example.com',
+            'code': code
+        })
+        self.assertEqual(good_verify.status_code, 200)
+
         # Reset password with correct code
         reset_res = self.client.post('/api/auth/reset-password', json={
             'email': 'reset@example.com',
