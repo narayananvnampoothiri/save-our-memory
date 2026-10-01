@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: save-our-memory
+    env: python
+    buildCommand: "pip install -r requirements.txt && python backend/seed.py"
+    startCommand: "gunicorn 'backend.app:create_app()' --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120"
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: STORAGE_DIR
+        value: "storage"
+      - key: DATABASE_PATH
+        value: "storage/database.sqlite"

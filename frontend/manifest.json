@@ -1,0 +1,25 @@
+{
+  "name": "Save Our Memory - Private Vault",
+  "short_name": "SaveOurMemory",
+  "description": "Private, secure digital memory sanctuary for couples, families, and close friends.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121011",
+  "theme_color": "#D46B6B",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["lifestyle", "social", "photography"]
+}

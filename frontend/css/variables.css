@@ -1,0 +1,117 @@
+/* ========================================================
+   SAVE OUR MEMORY - DESIGN SYSTEM VARIABLES
+   Warm Romantic Light & Intimate Velvet Midnight Dark Themes
+   ======================================================== */
+
+:root {
+  /* Fonts */
+  --font-heading: 'Playfair Display', Georgia, serif;
+  --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Transitions */
+  --trans-fast: 0.15s ease;
+  --trans-normal: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  --trans-smooth: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Shadows */
+  --shadow-sm: 0 2px 6px rgba(45, 32, 25, 0.04);
+  --shadow-md: 0 8px 24px rgba(45, 32, 25, 0.08);
+  --shadow-lg: 0 16px 40px rgba(45, 32, 25, 0.12);
+  --shadow-card: 0 6px 18px rgba(45, 32, 25, 0.06);
+  --shadow-glow: 0 0 20px rgba(184, 93, 67, 0.25);
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-xl: 32px;
+  --radius-full: 9999px;
+
+  /* Layout */
+  --max-width: 1240px;
+  --header-height: 72px;
+}
+
+/* 🌸 Warm Romantic Light Theme (Default) */
+[data-theme="light"], :root {
+  --bg-app: #FDFBF7;
+  --bg-surface: #FFFFFF;
+  --bg-surface-soft: #F7F3EC;
+  --bg-surface-elevated: #FFFFFF;
+  --bg-surface-trans: rgba(255, 255, 255, 0.85);
+
+  --border-subtle: #EFE8DE;
+  --border-strong: #DECFC0;
+  --border-focus: #B85D43;
+
+  --text-main: #2C231F;
+  --text-muted: #73645A;
+  --text-soft: #9E8F85;
+  --text-inverse: #FFFFFF;
+
+  /* Accent Colors */
+  --primary: #B85D43;          /* Warm Terracotta Rose */
+  --primary-hover: #9E4D36;
+  --primary-soft: #F9EBE7;
+  --primary-glow: rgba(184, 93, 67, 0.2);
+
+  --secondary: #7A5C61;        /* Muted Mauve Plum */
+  --secondary-soft: #F1E9EB;
+
+  --accent-gold: #C99355;      /* Warm Champagne Gold */
+  --accent-gold-soft: #FBF4EA;
+
+  --accent-sage: #5A7D69;      /* Forest Herb */
+  --accent-sage-soft: #EBF2ED;
+
+  --danger: #BA3C3C;
+  --danger-soft: #FBEBEB;
+
+  --card-polaroid-border: #F3ECE1;
+  --timeline-line: #E8DDD0;
+}
+
+/* 🌙 Intimate Velvet Midnight Dark Theme */
+[data-theme="dark"] {
+  --bg-app: #131110;
+  --bg-surface: #1C1816;
+  --bg-surface-soft: #26211E;
+  --bg-surface-elevated: #2A2421;
+  --bg-surface-trans: rgba(28, 24, 22, 0.85);
+
+  --border-subtle: #332B27;
+  --border-strong: #473D38;
+  --border-focus: #E28D75;
+
+  --text-main: #F4EBE4;
+  --text-muted: #A89B92;
+  --text-soft: #7D7068;
+  --text-inverse: #131110;
+
+  /* Accent Colors */
+  --primary: #E28D75;          /* Warm Glowing Rose */
+  --primary-hover: #F0A089;
+  --primary-soft: #38241F;
+  --primary-glow: rgba(226, 141, 117, 0.25);
+
+  --secondary: #BFA0A6;
+  --secondary-soft: #302427;
+
+  --accent-gold: #DFB07A;
+  --accent-gold-soft: #36291C;
+
+  --accent-sage: #84A893;
+  --accent-sage-soft: #1E2D24;
+
+  --danger: #E56E6E;
+  --danger-soft: #3D1F1F;
+
+  --card-polaroid-border: #2D2521;
+  --timeline-line: #382E28;
+
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
