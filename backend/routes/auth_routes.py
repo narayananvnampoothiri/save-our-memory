@@ -133,45 +133,47 @@ def forgot_password():
     if not email:
         return jsonify({'error': 'Please enter your registered email address.'}), 400
 
-    generic_message = "If an account with that email exists, a 6-digit verification code has been sent."
     db = get_db()
     user = db.execute("SELECT id, email FROM users WHERE email = ?", (email,)).fetchone()
 
-    debug_code = None
-    email_sent = False
-    if user:
-        # Generate 6-digit code
-        raw_code = f"{secrets.randbelow(900000) + 100000:06d}"
-        code_hash = hash_reset_code(raw_code)
-        expires_at = datetime.now(timezone.utc) + timedelta(minutes=Config.RESET_CODE_EXPIRE_MINUTES)
+    if not user:
+        return jsonify({
+            'error': f"No account found with email '{email}'. Please check for typos or click 'Create Vault' to register."
+        }), 404
 
-        # Invalidate any prior active codes
-        db.execute(
-            "UPDATE password_reset_codes SET used_at = CURRENT_TIMESTAMP WHERE user_id = ? AND used_at IS NULL",
-            (user['id'],)
-        )
+    # Generate 6-digit code
+    raw_code = f"{secrets.randbelow(900000) + 100000:06d}"
+    code_hash = hash_reset_code(raw_code)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=Config.RESET_CODE_EXPIRE_MINUTES)
 
-        db.execute(
-            """
-            INSERT INTO password_reset_codes (user_id, code_hash, expires_at, created_at)
-            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-            """,
-            (user['id'], code_hash, expires_at.strftime('%Y-%m-%d %H:%M:%S'))
-        )
-        db.commit()
+    # Invalidate any prior active codes
+    db.execute(
+        "UPDATE password_reset_codes SET used_at = CURRENT_TIMESTAMP WHERE user_id = ? AND used_at IS NULL",
+        (user['id'],)
+    )
 
-        # Send email via SMTP service
-        email_sent, _ = send_reset_code_email(user['email'], raw_code)
-        debug_code = raw_code
-        print(f"[SECURITY LOG] Password reset code generated for {email}: {raw_code}")
+    db.execute(
+        """
+        INSERT INTO password_reset_codes (user_id, code_hash, expires_at, created_at)
+        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+        """,
+        (user['id'], code_hash, expires_at.strftime('%Y-%m-%d %H:%M:%S'))
+    )
+    db.commit()
+
+    # Attempt sending email via SMTP
+    email_sent, email_status = send_reset_code_email(user['email'], raw_code)
+    print(f"[AUTH FORGOT PASSWORD] Code {raw_code} generated for {email} (Email sent: {email_sent})")
 
     res = {
-        'message': f"A 6-digit one-time verification code has been sent to {email}." if user else generic_message,
+        'message': f"A 6-digit one-time verification code has been sent to {email}." if email_sent else f"Verification code generated for {email}.",
         'email_sent': email_sent
     }
-    # Provide dev_verification_code only when SMTP is unconfigured in development
-    if debug_code and Config.DEBUG and not email_sent:
-        res['dev_verification_code'] = debug_code
+    
+    # If email could not be sent (e.g. SMTP not configured), supply the code so user is never stuck
+    if not email_sent:
+        res['verification_code'] = raw_code
+        res['note'] = "SMTP email service is not configured in .env. Enter this code to proceed."
 
     return jsonify(res), 200
 

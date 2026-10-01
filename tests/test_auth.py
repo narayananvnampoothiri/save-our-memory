@@ -130,8 +130,14 @@ class TestAuth(unittest.TestCase):
         })
         self.assertEqual(res.status_code, 200)
         data = res.get_json()
-        code = data.get('dev_verification_code')
+        code = data.get('verification_code') or data.get('dev_verification_code')
         self.assertTrue(code is not None and len(code) == 6)
+
+        # Test request with unregistered email (should return 404)
+        unreg_res = self.client.post('/api/auth/forgot-password', json={
+            'email': 'nonexistent@example.com'
+        })
+        self.assertEqual(unreg_res.status_code, 404)
 
         # Test verify with wrong code
         bad_verify = self.client.post('/api/auth/verify-reset-code', json={

@@ -1502,8 +1502,17 @@ const Views = (() => {
                   <p class="text-xs text-muted" style="margin: 0.35rem 0 0;">Check your inbox & spam folder. Code expires in 15 minutes.</p>
                 </div>
 
-                <div id="dev-code-banner" style="display: none; background: var(--accent-gold-soft); border: 1px dashed var(--accent-gold); padding: 0.6rem 0.85rem; border-radius: var(--radius-md); font-size: 0.85rem; margin-bottom: 1rem;">
-                  <span>⚡ Dev Test Code: <strong id="dev-code-text" style="letter-spacing: 2px;"></strong></span>
+                <div id="dev-code-banner" style="display: none; background: var(--accent-gold-soft); border: 1px dashed var(--accent-gold); padding: 0.85rem 1rem; border-radius: var(--radius-md); margin-bottom: 1.25rem;">
+                  <div style="font-size: 0.8rem; font-weight: 600; color: var(--accent-gold); margin-bottom: 0.35rem;">
+                    🔑 Verification Code:
+                  </div>
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
+                    <strong id="dev-code-text" style="font-size: 1.4rem; letter-spacing: 5px; color: var(--primary); font-family: monospace;"></strong>
+                    <button type="button" class="btn btn-secondary text-xs" onclick="document.getElementById('reset-code').value=document.getElementById('dev-code-text').innerText">Click to Fill</button>
+                  </div>
+                  <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.4rem;">
+                    (SMTP email is not set up in .env yet. Use this code to proceed).
+                  </div>
                 </div>
 
                 <form onsubmit="Views.handleVerifyCodeSubmit(event)">
@@ -1644,9 +1653,10 @@ const Views = (() => {
       goToForgotStep(2);
 
       const devBanner = document.getElementById('dev-code-banner');
-      if (res.dev_verification_code && devBanner) {
+      const codeToShow = res.verification_code || res.dev_verification_code;
+      if (codeToShow && devBanner) {
         devBanner.style.display = 'block';
-        document.getElementById('dev-code-text').innerText = res.dev_verification_code;
+        document.getElementById('dev-code-text').innerText = codeToShow;
       } else if (devBanner) {
         devBanner.style.display = 'none';
       }
@@ -1670,9 +1680,10 @@ const Views = (() => {
       const res = await API.auth.forgotPassword(pendingForgotEmail);
       showToast('A new one-time code has been sent!');
       const devBanner = document.getElementById('dev-code-banner');
-      if (res.dev_verification_code && devBanner) {
+      const codeToShow = res.verification_code || res.dev_verification_code;
+      if (codeToShow && devBanner) {
         devBanner.style.display = 'block';
-        document.getElementById('dev-code-text').innerText = res.dev_verification_code;
+        document.getElementById('dev-code-text').innerText = codeToShow;
       }
     } catch (err) {
       showToast(err.message, 'error');
