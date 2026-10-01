@@ -1261,9 +1261,9 @@ const Views = (() => {
           </div>
           <div class="modal-body">
             <div class="form-group">
-              <input type="text" id="user-search-input" class="form-input" placeholder="Search by name or username (e.g. Anu)..." 
+              <input type="text" id="user-search-input" class="form-input" placeholder="Search by name, @username, or registered email..." 
                      autofocus oninput="Views.handleUserSearch(this.value)">
-              <small class="text-xs text-soft">Private details like email addresses are never shared.</small>
+              <small class="text-xs text-soft">Search by full name, @username, or registered email. Private details are never exposed.</small>
             </div>
             <div id="search-results-list" style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem;">
               <p class="text-center text-muted text-sm" style="padding: 1.5rem 0;">Type at least 2 characters to search for loved ones.</p>
@@ -1280,7 +1280,8 @@ const Views = (() => {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(async () => {
       const resultsEl = document.getElementById('search-results-list');
-      if (!query || query.trim().length < 2) {
+      const clean = (query || '').replace(/^@+/, '').trim();
+      if (!clean || clean.length < 2) {
         resultsEl.innerHTML = '<p class="text-center text-muted text-sm" style="padding: 1.5rem 0;">Type at least 2 characters to search for loved ones.</p>';
         return;
       }
@@ -1290,7 +1291,7 @@ const Views = (() => {
         const res = await API.users.search(query.trim());
         const users = res.users || [];
         if (users.length === 0) {
-          resultsEl.innerHTML = '<p class="text-center text-muted text-sm" style="padding: 1.5rem 0;">No people found matching that name or username.</p>';
+          resultsEl.innerHTML = '<p class="text-center text-muted text-sm" style="padding: 1.5rem 0;">No people found. Make sure you entered the correct name, @username, or registered email.</p>';
           return;
         }
 
@@ -1301,13 +1302,15 @@ const Views = (() => {
                 ${u.profile_picture ? `<img src="${API.media.getAvatarUrl(u.profile_picture)}" class="user-avatar" style="width:38px;height:38px;">` : escapeHtml(u.name[0])}
               </div>
               <div class="connection-meta">
-                <h4 style="font-size: 0.95rem;">${escapeHtml(u.name)}</h4>
+                <h4 style="font-size: 0.95rem;">${escapeHtml(u.name)} ${u.connection_status === 'self' ? '<span class="text-xs text-muted" style="font-weight: normal;">(You)</span>' : ''}</h4>
                 <p class="text-muted text-xs">@${escapeHtml(u.username)}</p>
               </div>
             </div>
 
             <div>
-              ${u.connection_status === 'connected' ? `
+              ${u.connection_status === 'self' ? `
+                <span class="privacy-badge" style="background: rgba(255,255,255,0.08); color: var(--text-color); border: 1px solid var(--border-color);">You</span>
+              ` : u.connection_status === 'connected' ? `
                 <span class="privacy-badge connections">Connected</span>
               ` : u.connection_status === 'pending_outgoing' ? `
                 <span class="privacy-badge private">Pending</span>

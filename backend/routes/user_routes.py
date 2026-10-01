@@ -4,57 +4,98 @@ from backend.auth import require_auth, validate_username
 from backend.storage import StorageService
 from backend.security import sanitize_user
 
+import re
+
 user_bp = Blueprint('users', __name__, url_prefix='/api/users')
 
 @user_bp.route('/search', methods=['GET'])
 @require_auth
 def search_users():
     """
-    Searches users by username or full name.
-    Strictly protects privacy: emails and private memories are never exposed.
+    Searches users by username, full name, or registered email.
+    Supports queries with or without '@', whitespace tolerance, and fallback fuzzy matching.
+    Strictly protects privacy: emails and private memories are never exposed to other users.
     """
     user_id = g.current_user['id']
-    query = request.args.get('q', '').strip()
+    raw_query = request.args.get('q', '').strip()
+    clean_query = raw_query.lstrip('@').strip()
 
-    if not query or len(query) < 2:
+    if not clean_query or len(clean_query) < 1:
         return jsonify({'users': []}), 200
 
     db = get_db()
-    # Search users excluding self
+    search_term = f"%{clean_query}%"
+    no_space_term = f"%{clean_query.replace(' ', '')}%"
+
     rows = db.execute(
         """
-        SELECT id, name, username, profile_picture, bio, created_at
+        SELECT id, name, username, email, profile_picture, bio, created_at
         FROM users
-        WHERE id != ? AND (username LIKE ? OR name LIKE ?)
+        WHERE username LIKE ? COLLATE NOCASE
+           OR username LIKE ? COLLATE NOCASE
+           OR name LIKE ? COLLATE NOCASE
+           OR email LIKE ? COLLATE NOCASE
+        ORDER BY
+            CASE WHEN id = ? THEN 2 ELSE 0 END,
+            CASE WHEN username = ? COLLATE NOCASE THEN 0
+                 WHEN name = ? COLLATE NOCASE THEN 1
+                 WHEN email = ? COLLATE NOCASE THEN 2
+                 ELSE 3 END,
+            name ASC
         LIMIT 25
         """,
-        (user_id, f"%{query}%", f"%{query}%")
+        (search_term, no_space_term, search_term, search_term, user_id, clean_query, clean_query, clean_query)
     ).fetchall()
+
+    # Fallback: If 0 results and query ends in numbers or has typo (e.g. naran111 instead of naran123)
+    if not rows and len(clean_query) >= 3:
+        base = re.sub(r'\d+$', '', clean_query)
+        if len(base) >= 3 and base != clean_query:
+            base_term = f"%{base}%"
+            rows = db.execute(
+                """
+                SELECT id, name, username, email, profile_picture, bio, created_at
+                FROM users
+                WHERE username LIKE ? COLLATE NOCASE
+                   OR name LIKE ? COLLATE NOCASE
+                   OR email LIKE ? COLLATE NOCASE
+                ORDER BY
+                    CASE WHEN id = ? THEN 2 ELSE 0 END,
+                    name ASC
+                LIMIT 25
+                """,
+                (base_term, base_term, base_term, user_id)
+            ).fetchall()
 
     users_list = []
     for row in rows:
-        u = sanitize_user(dict(row))
-        # Determine connection status with current user
-        conn = db.execute(
-            """
-            SELECT id, requester_id, receiver_id, status FROM connections
-            WHERE (requester_id = ? AND receiver_id = ?)
-               OR (requester_id = ? AND receiver_id = ?)
-            """,
-            (user_id, u['id'], u['id'], user_id)
-        ).fetchone()
+        row_dict = dict(row)
+        is_self = (row_dict['id'] == user_id)
+        u = sanitize_user(row_dict, is_self=is_self)
 
         status = 'none'
         connection_id = None
-        if conn:
-            connection_id = conn['id']
-            if conn['status'] == 'accepted':
-                status = 'connected'
-            elif conn['status'] == 'pending':
-                if conn['requester_id'] == user_id:
-                    status = 'pending_outgoing'
-                else:
-                    status = 'pending_incoming'
+        if is_self:
+            status = 'self'
+        else:
+            conn = db.execute(
+                """
+                SELECT id, requester_id, receiver_id, status FROM connections
+                WHERE (requester_id = ? AND receiver_id = ?)
+                   OR (requester_id = ? AND receiver_id = ?)
+                """,
+                (user_id, u['id'], u['id'], user_id)
+            ).fetchone()
+
+            if conn:
+                connection_id = conn['id']
+                if conn['status'] == 'accepted':
+                    status = 'connected'
+                elif conn['status'] == 'pending':
+                    if conn['requester_id'] == user_id:
+                        status = 'pending_outgoing'
+                    else:
+                        status = 'pending_incoming'
 
         u['connection_status'] = status
         u['connection_id'] = connection_id

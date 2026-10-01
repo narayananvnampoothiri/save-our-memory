@@ -31,8 +31,10 @@ wheels/
 cloudflared.exe
 *.exe
 
-# Test databases
+# Test databases & user uploads
 storage/test_*.sqlite
+storage/media/*
+storage/thumbnails/*
 
 # IDE & OS
 .vscode/
